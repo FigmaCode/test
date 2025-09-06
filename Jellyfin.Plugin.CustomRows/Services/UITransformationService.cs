@@ -49,7 +49,7 @@ public static class UITransformationService
 
             return modifiedContent;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             // Error logging would go here
             // Return original content on error to prevent breaking the UI
