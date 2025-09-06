@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Custom Rows Configuration</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <div id="CustomRowsConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox,emby-select">
+        <div data-role="content">
+            <div class="content-primary">
+                <form id="CustomRowsConfigForm">
+                    <div class="sectionTitleContainer flex align-items-center">
+                        <h2 class="sectionTitle">Custom Rows Configuration</h2>
+                    </div>
+                    
+                    <div class="verticalSection">
+                        <h3>General Settings</h3>
+                        
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input type="checkbox" is="emby-checkbox" id="EnableCustomRows" />
+                                <span>Enable Custom Rows</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">
+                                Enable or disable the custom rows functionality
+                            </div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="MaxRows">Maximum number of rows</label>
+                            <input is="emby-input" type="number" id="MaxRows" min="1" max="20" step="1" />
+                            <div class="fieldDescription">Maximum number of rows to display on the home screen</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="MaxItemsPerRow">Maximum items per row</label>
+                            <input is="emby-input" type="number" id="MaxItemsPerRow" min="5" max="50" step="1" />
+                            <div class="fieldDescription">Maximum number of items to show in each row</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="MinItemsPerRow">Minimum items per row</label>
+                            <input is="emby-input" type="number" id="MinItemsPerRow" min="1" max="20" step="1" />
+                            <div class="fieldDescription">Minimum number of items required to show a row</div>
+                        </div>
+                    </div>
+
+                    <div class="verticalSection">
+                        <h3>Row Types</h3>
+                        
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input type="checkbox" is="emby-checkbox" id="ShowGenreRows" />
+                                <span>Show Genre Rows</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">
+                                Display rows organized by genre
+                            </div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input type="checkbox" is="emby-checkbox" id="ShowRecentlyAddedRow" />
+                                <span>Show Recently Added Row</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">
+                                Display a row with recently added content
+                            </div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input type="checkbox" is="emby-checkbox" id="ShowMyListRow" />
+                                <span>Show "My List" Row</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">
+                                Display a row with favorited content (watchlist)
+                            </div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input type="checkbox" is="emby-checkbox" id="ShowRandomPicksRow" />
+                                <span>Show Random Picks Row</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">
+                                Display a row with random content for discovery
+                            </div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input type="checkbox" is="emby-checkbox" id="ShowNotWatchedRow" />
+                                <span>Show "Not Watched in a While" Row</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">
+                                Display content that hasn't been watched recently
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="verticalSection">
+                        <h3>Advanced Settings</h3>
+                        
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="CustomCSS">Custom CSS</label>
+                            <textarea is="emby-input" id="CustomCSS" rows="5" placeholder="/* Custom CSS for styling rows */"></textarea>
+                            <div class="fieldDescription">Custom CSS to apply to the rows (advanced users only)</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input type="checkbox" is="emby-checkbox" id="DebugMode" />
+                                <span>Debug Mode</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">
+                                Enable debug logging (check server logs for output)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <button is="emby-button" type="submit" class="raised button-submit block">
+                            <span>Save</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        (function () {
+            var pluginId = "f2f8b500-2b43-4f72-9b2a-d4a5c8e7f1a9";
+
+            ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                document.getElementById('EnableCustomRows').checked = config.EnableCustomRows || false;
+                document.getElementById('MaxRows').value = config.MaxRows || 8;
+                document.getElementById('MaxItemsPerRow').value = config.MaxItemsPerRow || 20;
+                document.getElementById('MinItemsPerRow').value = config.MinItemsPerRow || 5;
+                document.getElementById('ShowGenreRows').checked = config.ShowGenreRows !== false;
+                document.getElementById('ShowRecentlyAddedRow').checked = config.ShowRecentlyAddedRow !== false;
+                document.getElementById('ShowMyListRow').checked = config.ShowMyListRow !== false;
+                document.getElementById('ShowRandomPicksRow').checked = config.ShowRandomPicksRow || false;
+                document.getElementById('ShowNotWatchedRow').checked = config.ShowNotWatchedRow || false;
+                document.getElementById('CustomCSS').value = config.CustomCSS || '';
+                document.getElementById('DebugMode').checked = config.DebugMode || false;
+            });
+
+            document.getElementById('CustomRowsConfigForm').addEventListener('submit', function (e) {
+                Dashboard.showLoadingMsg();
+
+                ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                    config.EnableCustomRows = document.getElementById('EnableCustomRows').checked;
+                    config.MaxRows = parseInt(document.getElementById('MaxRows').value) || 8;
+                    config.MaxItemsPerRow = parseInt(document.getElementById('MaxItemsPerRow').value) || 20;
+                    config.MinItemsPerRow = parseInt(document.getElementById('MinItemsPerRow').value) || 5;
+                    config.ShowGenreRows = document.getElementById('ShowGenreRows').checked;
+                    config.ShowRecentlyAddedRow = document.getElementById('ShowRecentlyAddedRow').checked;
+                    config.ShowMyListRow = document.getElementById('ShowMyListRow').checked;
+                    config.ShowRandomPicksRow = document.getElementById('ShowRandomPicksRow').checked;
+                    config.ShowNotWatchedRow = document.getElementById('ShowNotWatchedRow').checked;
+                    config.CustomCSS = document.getElementById('CustomCSS').value;
+                    config.DebugMode = document.getElementById('DebugMode').checked;
+
+                    ApiClient.updatePluginConfiguration(pluginId, config).then(function (result) {
+                        Dashboard.processPluginConfigurationUpdateResult(result);
+                    });
+                });
+
+                e.preventDefault();
+                return false;
+            });
+        })();
+    </script>
+</body>
+</html>

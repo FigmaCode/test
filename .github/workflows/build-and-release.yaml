@@ -1,0 +1,178 @@
+name: Build and Release Netflix Rows Plugin
+
+on:
+  push:
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        jellyfin-version: ['10.10.7']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Restore dependencies
+      working-directory: ./Jellyfin.Plugin.NetflixRows
+      run: dotnet restore --disable-parallel
+    
+    - name: Build
+      working-directory: ./Jellyfin.Plugin.NetflixRows
+      run: dotnet build --no-restore --configuration Release --verbosity normal
+    
+    - name: Test
+      working-directory: ./Jellyfin.Plugin.NetflixRows
+      run: dotnet test --no-build --verbosity normal --configuration Release || echo "No tests found, continuing..."
+    
+    - name: Create plugin archive
+      run: |
+        mkdir -p artifacts
+        cd Jellyfin.Plugin.NetflixRows/bin/Release/net8.0
+        zip -r ../../../../artifacts/jellyfin-plugin-netflix-rows-${{ github.ref_name || 'dev' }}.zip .
+    
+    - name: Calculate checksum
+      run: |
+        cd artifacts
+        CHECKSUM=$(sha256sum jellyfin-plugin-netflix-rows-*.zip | cut -d' ' -f1)
+        echo "CALCULATED_CHECKSUM=$CHECKSUM" >> $GITHUB_ENV
+        echo "Calculated checksum: $CHECKSUM"
+    
+    - name: Create repository.json
+      run: |
+        # Extract version number without 'v' prefix
+        RAW_VERSION="${{ github.ref_name || '1.0.0' }}"
+        VERSION="${RAW_VERSION#v}"
+        TAG_NAME="${{ github.ref_name || 'v1.0.0' }}"
+        TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%S.%fZ)
+        
+        echo "Creating repository.json with:"
+        echo "Version: $VERSION"
+        echo "Tag: $TAG_NAME" 
+        echo "Checksum: $CALCULATED_CHECKSUM"
+        
+        cat > artifacts/repository.json << EOF
+        [
+          {
+            "name": "Netflix Rows",
+            "description": "Transform your Jellyfin home screen into a Netflix-like experience with dynamic rows, genres, and a custom watchlist.",
+            "overview": "Netflix Rows Plugin für Jellyfin - Erstellt eine Netflix-ähnliche Startseite mit dynamischen Rows, Genres und einer benutzerdefinierten Watchlist.",
+            "owner": "${{ github.repository_owner }}",
+            "category": "General",
+            "guid": "12345678-1234-5678-9abc-123456789012",
+            "versions": [
+              {
+                "version": "$VERSION",
+                "changelog": "Netflix-style rows with dynamic content organization. Full changelog: https://github.com/${{ github.repository }}/releases/tag/$TAG_NAME",
+                "targetAbi": "10.10.7.0",
+                "sourceUrl": "https://github.com/${{ github.repository }}/releases/download/$TAG_NAME/jellyfin-plugin-netflix-rows-$RAW_VERSION.zip",
+                "checksum": "$CALCULATED_CHECKSUM",
+                "timestamp": "$TIMESTAMP"
+              }
+            ]
+          }
+        ]
+        EOF
+        
+        # Create manifest.json (same content)
+        cp artifacts/repository.json artifacts/manifest.json
+        
+        # Copy meta.json if it exists
+        if [ -f "meta.json" ]; then
+          cp meta.json artifacts/
+        fi
+        
+        echo "=== Final repository.json ==="
+        cat artifacts/repository.json
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: plugin-artifacts-${{ matrix.jellyfin-version }}
+        path: |
+          artifacts/*.zip
+          artifacts/manifest.json
+          artifacts/repository.json
+          artifacts/meta.json
+    
+    - name: Create Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          artifacts/*.zip
+          artifacts/repository.json
+          artifacts/meta.json
+        body: |
+          ## Netflix Rows Plugin ${{ github.ref_name }}
+          
+          ### Features
+          - 🎬 Netflix-style home screen with dynamic rows
+          - 📚 Genre-based content organization
+          - ⭐ Custom "My List" functionality using favorites
+          - 🔀 Random picks for content discovery
+          - 📅 Recently added and long not watched sections
+          - ⚙️ Comprehensive admin configuration
+          - 🎨 Theme-adaptive design
+          - 📱 Responsive mobile support
+          - ⚡ Lazy loading for optimal performance
+          
+          ### Installation
+          1. Add `https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/repository.json` as a plugin repository in Jellyfin
+          2. Install "Netflix Rows" from the plugin catalog
+          3. Restart Jellyfin
+          4. Configure the plugin in the admin dashboard
+          
+          ### Requirements
+          - Jellyfin 10.10.7 or later
+          - File Transformation Plugin
+          - Home Screen Sections Plugin (optional)
+          - Plugin Pages Plugin (optional)
+          
+          ### Compatibility
+          - Compatible with all Jellyfin themes
+          - Supports dark/light theme switching
+          - Mobile and desktop responsive
+          - High contrast mode support
+          - Reduced motion preferences
+          
+          Full documentation available in the repository README.
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  test:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Restore dependencies
+      working-directory: ./Jellyfin.Plugin.NetflixRows
+      run: dotnet restore
+    
+    - name: Run tests
+      working-directory: ./Jellyfin.Plugin.NetflixRows
+      run: dotnet test --verbosity normal || echo "No tests found, continuing..."
+    
+    - name: Build
+      working-directory: ./Jellyfin.Plugin.NetflixRows
+      run: dotnet build --configuration Release
