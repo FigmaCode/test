@@ -26,12 +26,15 @@ jobs:
         dotnet-version: '8.0.x'
     
     - name: Restore dependencies
+      working-directory: ./Jellyfin.Plugin.CustomRows
       run: dotnet restore --disable-parallel
     
     - name: Build
+      working-directory: ./Jellyfin.Plugin.CustomRows
       run: dotnet build --no-restore --configuration Release --verbosity normal
     
     - name: Test
+      working-directory: ./Jellyfin.Plugin.CustomRows
       run: dotnet test --no-build --verbosity normal --configuration Release || echo "No tests found, continuing..."
     
     - name: Create plugin archive
