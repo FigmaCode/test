@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.Loader;
 using Jellyfin.Plugin.CustomRows.Configuration;
@@ -118,6 +119,6 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     {
         // For now we'll keep this simple and let the standard Jellyfin config page handle it
         // Later we can integrate with Plugin Pages for a better UI
-        _logger.LogCustomRowsInfo("Plugin page registration completed");
+        _logger.LogInformation("Plugin page registration completed");
     }
 }

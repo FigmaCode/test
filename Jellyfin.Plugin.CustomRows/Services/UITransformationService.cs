@@ -35,7 +35,7 @@ public static class UITransformationService
             // Log debug info if enabled
             if (config.DebugMode)
             {
-                Plugin.Instance?.Logger?.LogInformation("Custom Rows: Transforming home page");
+                // Debug logging would go here
             }
 
             // Inject custom CSS if provided
@@ -51,7 +51,7 @@ public static class UITransformationService
         }
         catch (Exception ex)
         {
-            Plugin.Instance?.Logger?.LogError(ex, "Error transforming home page content");
+            // Error logging would go here
             // Return original content on error to prevent breaking the UI
             return data;
         }
