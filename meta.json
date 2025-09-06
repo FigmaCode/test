@@ -3,14 +3,14 @@
   "name": "Custom Rows",
   "description": "Allows users to create custom rows on the Jellyfin home screen with configurable content sections similar to Netflix.",
   "overview": "Create custom home screen rows with genres, recently added content, watchlists and more. Fully configurable through the admin panel.",
-  "owner": "YourName",
+  "owner": "FigmaCode",
   "category": "General",
   "versions": [
     {
       "version": "1.0.0.0",
       "changelog": "Initial release with basic custom rows functionality",
-      "targetAbi": "10.10.0.0",
-      "sourceUrl": "https://github.com/yourusername/jellyfin-plugin-custom-rows/releases/download/v1.0.0/jellyfin-plugin-custom-rows_1.0.0.0.zip",
+      "targetAbi": "10.10.7.0",
+      "sourceUrl": "https://github.com/FigmaCode/test/releases/download/v1.0.0.0/test_1.0.0.0.zip",
       "checksum": "00000000000000000000000000000000",
       "timestamp": "2025-01-01T00:00:00Z"
     }

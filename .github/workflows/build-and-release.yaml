@@ -1,9 +1,10 @@
-name: Build and Release Netflix Rows Plugin
+name: Build and Release Custom Rows Plugin
 
 on:
   push:
     tags:
       - 'v*'
+    branches: [ main ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
@@ -25,59 +26,65 @@ jobs:
         dotnet-version: '8.0.x'
     
     - name: Restore dependencies
-      working-directory: ./Jellyfin.Plugin.NetflixRows
       run: dotnet restore --disable-parallel
     
     - name: Build
-      working-directory: ./Jellyfin.Plugin.NetflixRows
       run: dotnet build --no-restore --configuration Release --verbosity normal
     
     - name: Test
-      working-directory: ./Jellyfin.Plugin.NetflixRows
       run: dotnet test --no-build --verbosity normal --configuration Release || echo "No tests found, continuing..."
     
     - name: Create plugin archive
       run: |
         mkdir -p artifacts
-        cd Jellyfin.Plugin.NetflixRows/bin/Release/net8.0
-        zip -r ../../../../artifacts/jellyfin-plugin-netflix-rows-${{ github.ref_name || 'dev' }}.zip .
+        cd bin/Release/net8.0
+        zip -r ../../../artifacts/jellyfin-plugin-custom-rows-${{ github.ref_name || 'dev' }}.zip .
     
     - name: Calculate checksum
+      id: checksum
       run: |
         cd artifacts
-        CHECKSUM=$(sha256sum jellyfin-plugin-netflix-rows-*.zip | cut -d' ' -f1)
-        echo "CALCULATED_CHECKSUM=$CHECKSUM" >> $GITHUB_ENV
+        CHECKSUM=$(sha256sum jellyfin-plugin-custom-rows-*.zip | cut -d' ' -f1)
+        echo "checksum=$CHECKSUM" >> $GITHUB_OUTPUT
         echo "Calculated checksum: $CHECKSUM"
+        
+        # Also save checksum to file for release
+        echo "$CHECKSUM" > checksum.txt
+        echo "SHA256: $CHECKSUM" > ../CHECKSUM.md
     
-    - name: Create repository.json
+    - name: Create manifest.json for direct installation
+      id: manifest
       run: |
         # Extract version number without 'v' prefix
         RAW_VERSION="${{ github.ref_name || '1.0.0' }}"
         VERSION="${RAW_VERSION#v}"
         TAG_NAME="${{ github.ref_name || 'v1.0.0' }}"
         TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%S.%fZ)
+        CHECKSUM="${{ steps.checksum.outputs.checksum }}"
         
-        echo "Creating repository.json with:"
+        echo "Creating manifest.json with:"
         echo "Version: $VERSION"
         echo "Tag: $TAG_NAME" 
-        echo "Checksum: $CALCULATED_CHECKSUM"
+        echo "Checksum: $CHECKSUM"
         
-        cat > artifacts/repository.json << EOF
+        # Create manifest.json for Jellyfin plugin repository
+        cat > manifest.json << EOF
         [
           {
-            "name": "Netflix Rows",
-            "description": "Transform your Jellyfin home screen into a Netflix-like experience with dynamic rows, genres, and a custom watchlist.",
-            "overview": "Netflix Rows Plugin für Jellyfin - Erstellt eine Netflix-ähnliche Startseite mit dynamischen Rows, Genres und einer benutzerdefinierten Watchlist.",
+            "name": "Custom Rows",
+            "description": "Transform your Jellyfin home screen with custom rows similar to Netflix. Create dynamic rows with genres, watchlists, recently added content and more.",
+            "overview": "Custom Rows Plugin für Jellyfin - Erstellt eine Netflix-ähnliche Startseite mit dynamischen Rows, Genres und einer benutzerdefinierten Watchlist. Vollständig konfigurierbar über das Admin-Panel.",
             "owner": "${{ github.repository_owner }}",
             "category": "General",
-            "guid": "12345678-1234-5678-9abc-123456789012",
+            "guid": "f2f8b500-2b43-4f72-9b2a-d4a5c8e7f1a9",
+            "imageUrl": "https://raw.githubusercontent.com/${{ github.repository }}/main/icon.png",
             "versions": [
               {
                 "version": "$VERSION",
-                "changelog": "Netflix-style rows with dynamic content organization. Full changelog: https://github.com/${{ github.repository }}/releases/tag/$TAG_NAME",
+                "changelog": "Custom Netflix-style rows with dynamic content organization and full admin configuration. See full changelog: https://github.com/${{ github.repository }}/releases/tag/$TAG_NAME",
                 "targetAbi": "10.10.7.0",
-                "sourceUrl": "https://github.com/${{ github.repository }}/releases/download/$TAG_NAME/jellyfin-plugin-netflix-rows-$RAW_VERSION.zip",
-                "checksum": "$CALCULATED_CHECKSUM",
+                "sourceUrl": "https://github.com/${{ github.repository }}/releases/download/$TAG_NAME/jellyfin-plugin-custom-rows-$RAW_VERSION.zip",
+                "checksum": "$CHECKSUM",
                 "timestamp": "$TIMESTAMP"
               }
             ]
@@ -85,26 +92,21 @@ jobs:
         ]
         EOF
         
-        # Create manifest.json (same content)
-        cp artifacts/repository.json artifacts/manifest.json
+        echo "=== Final manifest.json ==="
+        cat manifest.json
         
-        # Copy meta.json if it exists
-        if [ -f "meta.json" ]; then
-          cp meta.json artifacts/
-        fi
-        
-        echo "=== Final repository.json ==="
-        cat artifacts/repository.json
+        # Also copy to artifacts folder
+        cp manifest.json artifacts/
     
-    - name: Upload artifacts
+    - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
         name: plugin-artifacts-${{ matrix.jellyfin-version }}
         path: |
           artifacts/*.zip
-          artifacts/manifest.json
-          artifacts/repository.json
-          artifacts/meta.json
+          manifest.json
+          meta.json
+          CHECKSUM.md
     
     - name: Create Release
       if: startsWith(github.ref, 'refs/tags/')
@@ -112,42 +114,94 @@ jobs:
       with:
         files: |
           artifacts/*.zip
-          artifacts/repository.json
-          artifacts/meta.json
+          manifest.json
+          meta.json
         body: |
-          ## Netflix Rows Plugin ${{ github.ref_name }}
+          ## Custom Rows Plugin ${{ github.ref_name }}
           
-          ### Features
-          - 🎬 Netflix-style home screen with dynamic rows
-          - 📚 Genre-based content organization
-          - ⭐ Custom "My List" functionality using favorites
-          - 🔀 Random picks for content discovery
-          - 📅 Recently added and long not watched sections
-          - ⚙️ Comprehensive admin configuration
-          - 🎨 Theme-adaptive design
-          - 📱 Responsive mobile support
-          - ⚡ Lazy loading for optimal performance
+          ### 📦 Installation (Easy Method)
           
-          ### Installation
-          1. Add `https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/repository.json` as a plugin repository in Jellyfin
-          2. Install "Netflix Rows" from the plugin catalog
+          **Direkt über GitHub Raw Link installieren:**
+          1. Gehe zu **Dashboard → Plugins → Repositories**
+          2. Füge diese URL hinzu:
+             ```
+             https://raw.githubusercontent.com/${{ github.repository }}/main/manifest.json
+             ```
+          3. Gehe zu **Dashboard → Plugins → Catalog**
+          4. Installiere "Custom Rows" aus der Liste
+          5. Starte Jellyfin neu
+          6. Konfiguriere das Plugin unter **Dashboard → Plugins → Custom Rows**
+          
+          ### 📁 Manual Installation
+          
+          1. Lade `jellyfin-plugin-custom-rows-${{ github.ref_name }}.zip` herunter
+          2. Entpacke es in deinen Jellyfin `plugins` Ordner
+          3. Starte Jellyfin neu
+          
+          ### 🔐 File Verification
+          
+          **SHA256 Checksum:** `${{ steps.checksum.outputs.checksum }}`
+          
+          Verifiziere die Download-Integrität:
+          ```bash
+          sha256sum jellyfin-plugin-custom-rows-${{ github.ref_name }}.zip
+          ```
+          
+          ### ✨ Features (v${{ github.ref_name }})
+          
+          - 🎬 **Netflix-style Interface**: Transform your home screen with dynamic rows
+          - 📚 **Genre-based Rows**: Automatic content organization by genre
+          - ⭐ **Custom "My List"**: Watchlist functionality using Jellyfin favorites  
+          - 🎲 **Random Picks**: Discover new content with randomized suggestions
+          - 📅 **Smart Sections**: Recently added, long not watched, and more
+          - ⚙️ **Full Admin Control**: Comprehensive configuration options
+          - 🎨 **Theme Integration**: Works seamlessly with all Jellyfin themes
+          - 📱 **Mobile Responsive**: Optimized for all screen sizes
+          - ⚡ **Performance Optimized**: Lazy loading and efficient resource usage
+          
+          ### 🔧 Requirements
+          
+          - **Jellyfin**: 10.10.7 or later
+          - **Dependencies**: 
+            - File Transformation Plugin *(required)*
+            - Plugin Pages *(optional, for enhanced UI)*
+            - Home Screen Sections *(optional, for advanced features)*
+          
+          ### 🚀 Quick Start
+          
+          1. Install dependencies from: `https://www.iamparadox.dev/jellyfin/plugins/manifest.json`
+          2. Install Custom Rows using the GitHub Raw link above
           3. Restart Jellyfin
-          4. Configure the plugin in the admin dashboard
+          4. Go to **Dashboard → Plugins → Custom Rows** to configure
+          5. Enable your preferred row types and adjust settings
+          6. Refresh your home screen to see the changes
           
-          ### Requirements
-          - Jellyfin 10.10.7 or later
-          - File Transformation Plugin
-          - Home Screen Sections Plugin (optional)
-          - Plugin Pages Plugin (optional)
+          ### 🎯 Configuration Options
           
-          ### Compatibility
-          - Compatible with all Jellyfin themes
-          - Supports dark/light theme switching
-          - Mobile and desktop responsive
-          - High contrast mode support
-          - Reduced motion preferences
+          - **General**: Max rows, items per row, enable/disable functionality
+          - **Row Types**: Genre rows, recently added, my list, random picks, not watched
+          - **Advanced**: Custom CSS injection, debug logging, performance settings
           
-          Full documentation available in the repository README.
+          ### 🛠️ Development
+          
+          This plugin uses the proven architecture of IAmParadox27's plugin ecosystem:
+          - Non-destructive UI modifications via File Transformation
+          - Clean plugin-to-plugin communication through reflection
+          - Jellyfin-native configuration and theming integration
+          
+          ### 📋 Changelog
+          
+          See the full changelog and technical details in the repository README.
+          
+          ### 🆘 Support
+          
+          - **Issues**: Report bugs on GitHub
+          - **Documentation**: Full docs in repository
+          - **Debug**: Enable debug mode in plugin settings and check server logs
+          
+          ---
+          
+          **🎉 Happy Streaming with Custom Rows!**
         draft: false
         prerelease: false
       env:
@@ -166,13 +220,13 @@ jobs:
         dotnet-version: '8.0.x'
     
     - name: Restore dependencies
-      working-directory: ./Jellyfin.Plugin.NetflixRows
+      working-directory: ./Jellyfin.Plugin.CustomRows
       run: dotnet restore
     
     - name: Run tests
-      working-directory: ./Jellyfin.Plugin.NetflixRows
+      working-directory: ./Jellyfin.Plugin.CustomRows
       run: dotnet test --verbosity normal || echo "No tests found, continuing..."
     
     - name: Build
-      working-directory: ./Jellyfin.Plugin.NetflixRows
+      working-directory: ./Jellyfin.Plugin.CustomRows
       run: dotnet build --configuration Release
