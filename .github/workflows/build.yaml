@@ -40,8 +40,8 @@ jobs:
     - name: Create plugin archive
       run: |
         mkdir -p artifacts
-        cd bin/Release/net8.0
-        zip -r ../../../artifacts/jellyfin-plugin-custom-rows-${{ github.ref_name || 'dev' }}.zip .
+        cd Jellyfin.Plugin.CustomRows/bin/Release/net8.0
+        zip -r ../../../../artifacts/jellyfin-plugin-custom-rows-${{ github.ref_name || 'dev' }}.zip .
     
     - name: Calculate checksum
       id: checksum
